@@ -1,7 +1,35 @@
 "use client";
-import React from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { CheckCircle2, Phone, Mail, MapPin, Clock, Sparkles, ShieldCheck, ArrowRight, BadgeHelp, Building2, Globe2, UserCheck, Landmark, FileCheck2, SearchCheck, CreditCard, Plane, IdCard, ClipboardCheck, HeartHandshake, Baby, Heart, Gem, Zap, FileSignature, Lightbulb, MessageCircle } from "lucide-react";
+import {
+  CheckCircle2,
+  Phone,
+  Mail,
+  MapPin,
+  Clock,
+  Sparkles,
+  ShieldCheck,
+  ArrowRight,
+  BadgeHelp,
+  Building2,
+  Globe2,
+  UserCheck,
+  Landmark,
+  FileCheck2,
+  SearchCheck,
+  CreditCard,
+  Plane,
+  IdCard,
+  ClipboardCheck,
+  HeartHandshake,
+  Baby,
+  Heart,
+  Gem,
+  Zap,
+  FileSignature,
+  Lightbulb,
+  MessageCircle,
+} from "lucide-react";
 
 // ✅ Single-file, production-ready landing page for a CSC Centre
 // Tech: React + TailwindCSS + Framer Motion + Lucide Icons
@@ -26,26 +54,27 @@ const services = [
   { title: "Insurance", icon: HeartHandshake, desc: "Health, life, vehicle insurance—new & renewals." },
   { title: "Marriage Certificate", icon: FileSignature, desc: "Application, document prep & appointment help." },
   { title: "Electricity Connection", icon: Zap, desc: "New meter, name change, bill corrections & more." },
-];
+] as const;
 
 const perks = [
   { icon: Sparkles, label: "Same‑Day Processing" },
   { icon: ShieldCheck, label: "Verified Government Portals" },
   { icon: CheckCircle2, label: "100% Receipt & Acknowledgement" },
   { icon: Gem, label: "Best Service Experience" },
-];
+] as const;
 
 // Replace with your real details
 const BUSINESS = {
   name: "Sawariya CSC Centre",
-  specialist: "Specialist Dr. Mr. Sahil Sharma",
-  phone: "+91 98765 43210",
-  whatsapp: "919876543210", // numeric with country code
+  specialist: "Mr. Sahil Sharma",
+  phone: "+91 7838903944",
+  whatsapp: "917838903944", // numeric with country code
   email: "support@sawariyacsc.in",
-  addressLine: "Main Market, Near Bus Stand, Your City, Your State 123456",
+  addressLine: "House no 87, Gali No. 8, Davilal Nagar, Devilal Colony, Sector 9, Gurugram, Haryana 122001",
   mapEmbed:
-    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d224345.8392419195!2d77.068897!3d28.527280!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390ce2b2f4e5d3e7%3A0x35b5b5b5b5b5b5!2sYour%20CSC%20Center!5e0!3m2!1sen!2sin!4v1680000000000!5m2!1sen!2sin",
+    "https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3503.566197727284!2d77.0015013!3d28.4611535!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x390d17ea3aadef83%3A0x4288907b45b9f45b!2sSawariya%20CSC%20CENTRE!5e0!3m2!1sen!2sin!4v1692700000000!5m2!1sen!2sin",
   timings: "Mon–Sun: 9:00 AM – 8:00 PM",
+  defaultSendMethod: "whatsapp" as "whatsapp" | "email", // choose default
 };
 
 const fadeUp = {
@@ -55,82 +84,350 @@ const fadeUp = {
   viewport: { once: true, amount: 0.2 },
 };
 
+// 🔹 Modal component (no external libs)
+function ApplyModal({
+  open,
+  onClose,
+  selectedService,
+  defaultSend,
+}: {
+  open: boolean;
+  onClose: () => void;
+  selectedService?: string;
+  defaultSend: "whatsapp" | "email";
+}) {
+  const dialogRef = useRef<HTMLDivElement | null>(null);
+  const [name, setName] = useState("");
+  const [phone, setPhone] = useState("");
+  const [service, setService] = useState(selectedService || services[0].title);
+  const [notes, setNotes] = useState("");
+  const [sendVia, setSendVia] = useState<"whatsapp" | "email">(defaultSend);
+  const [fileNames, setFileNames] = useState<string[]>([]);
+
+  useEffect(() => {
+    if (open) {
+      setService(selectedService || services[0].title);
+      setFileNames([]);
+      setNotes("");
+      setName("");
+      setPhone("");
+      setSendVia(defaultSend);
+      // focus trap lite
+      setTimeout(() => dialogRef.current?.focus(), 0);
+    }
+  }, [open, selectedService, defaultSend]);
+
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (!open) return;
+      if (e.key === "Escape") onClose();
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open, onClose]);
+
+  const waText = useMemo(() => {
+    const lines = [
+      `Service: ${service}`,
+      `Name: ${name}`,
+      `Phone: ${phone}`,
+      notes ? `Notes: ${notes}` : "",
+      fileNames.length
+        ? `Docs (to be shared on WhatsApp): ${fileNames.join(", ")}`
+        : "",
+    ]
+      .filter(Boolean)
+      .join("\n");
+    return encodeURIComponent(`Hi ${BUSINESS.name}, I want to apply for a service.\n\n${lines}`);
+  }, [service, name, phone, notes, fileNames]);
+
+  const mailtoHref = useMemo(() => {
+    const subject = encodeURIComponent(`Service Application – ${service}`);
+    const body = encodeURIComponent(
+      [
+        `Service: ${service}`,
+        `Name: ${name}`,
+        `Phone: ${phone}`,
+        notes ? `Notes: ${notes}` : "",
+        fileNames.length
+          ? `Docs: (Email clients often don't allow attaching via link) Please reply to this email with the files: ${fileNames.join(", ")}`
+          : "",
+      ]
+        .filter(Boolean)
+        .join("\n")
+    );
+    return `mailto:${BUSINESS.email}?subject=${subject}&body=${body}`;
+  }, [service, name, phone, notes, fileNames]);
+
+  function validatePhone(p: string) {
+    // Very light validation: at least 10 digits
+    const digits = p.replace(/\D/g, "");
+    return digits.length >= 10;
+  }
+
+  function onFileChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files || []);
+    setFileNames(files.map((f) => f.name));
+  }
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!name.trim()) return alert("Please enter your name.");
+    if (!validatePhone(phone)) return alert("Please enter a valid phone number (10+ digits).");
+
+    if (sendVia === "whatsapp") {
+      const link = `https://wa.me/${BUSINESS.whatsapp}?text=${waText}`;
+      window.open(link, "_blank");
+    } else {
+      window.location.href = mailtoHref; // opens email client
+    }
+
+    onClose();
+  }
+
+  if (!open) return null;
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      aria-label="Apply for a service"
+      tabIndex={-1}
+      ref={dialogRef}
+      className="fixed inset-0 z-[60]"
+    >
+      <div
+        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+        onClick={onClose}
+      />
+
+      <div className="absolute inset-0 grid place-items-center px-4">
+        <div className="w-full max-w-xl rounded-3xl border border-white/10 bg-white/[0.06] p-5 sm:p-6 shadow-2xl">
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h3 className="text-xl font-semibold flex items-center gap-2">
+                <BadgeHelp className="h-5 w-5" /> Apply Now
+              </h3>
+              <p className="text-white/70 text-sm mt-1">
+                Fill the details below. We will respond during working hours.
+              </p>
+            </div>
+            <button
+              onClick={onClose}
+              className="rounded-xl px-3 py-1.5 bg-white/10 hover:bg-white/20 text-sm"
+            >
+              Close
+            </button>
+          </div>
+
+          <form onSubmit={onSubmit} className="mt-5 grid gap-3">
+            <label className="grid gap-1">
+              <span className="text-sm text-white/80">Select Service</span>
+              <select
+                className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60"
+                value={service}
+                onChange={(e) => setService(e.target.value)}
+              >
+                {services.map((s) => (
+                  <option key={s.title} value={s.title}>
+                    {s.title}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <div className="grid sm:grid-cols-2 gap-3">
+              <input
+                name="name"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                placeholder="Your Name"
+                className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60"
+              />
+              <input
+                name="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                required
+                placeholder="Phone Number"
+                className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60"
+              />
+            </div>
+
+            <input
+              name="notes"
+              value={notes}
+              onChange={(e) => setNotes(e.target.value)}
+              placeholder="Any notes (e.g., urgent, city, existing ID, etc.)"
+              className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60"
+            />
+
+
+            <div className="mt-2 flex flex-wrap items-center gap-3 text-sm">
+              <span className="text-white/80">Send via:</span>
+              <label className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 border ${sendVia === "whatsapp" ? "border-green-400/60 bg-green-400/10" : "border-white/10"}`}>
+                <input
+                  type="radio"
+                  name="sendVia"
+                  checked={sendVia === "whatsapp"}
+                  onChange={() => setSendVia("whatsapp")}
+                />
+                WhatsApp
+              </label>
+              <label className={`inline-flex items-center gap-2 rounded-2xl px-3 py-1.5 border ${sendVia === "email" ? "border-indigo-400/60 bg-indigo-400/10" : "border-white/10"}`}>
+                <input
+                  type="radio"
+                  name="sendVia"
+                  checked={sendVia === "email"}
+                  onChange={() => setSendVia("email")}
+                />
+                Email
+              </label>
+            </div>
+
+            <button
+              type="submit"
+              className="mt-2 rounded-2xl px-5 py-3 bg-indigo-500 hover:bg-indigo-600 transition inline-flex items-center justify-center"
+            >
+              Submit & Continue <ArrowRight className="ml-2 h-4 w-4" />
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function SawariyaCSCCentre() {
+  const [applyOpen, setApplyOpen] = useState(false);
+  const [applyFor, setApplyFor] = useState<string | undefined>(undefined);
+
   const waText = encodeURIComponent(
     `Hello ${BUSINESS.name}, I need help with online services.`
   );
   const waLink = `https://wa.me/${BUSINESS.whatsapp}?text=${waText}`;
 
+  function openApply(service?: string) {
+    setApplyFor(service);
+    setApplyOpen(true);
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-slate-950 via-slate-900 to-slate-950 text-white">
       {/* Sticky Navbar */}
-      <header className="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/5 bg-white/5 border-b border-white/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="h-9 w-9 rounded-2xl bg-gradient-to-br from-indigo-500 to-violet-500 grid place-items-center shadow-lg">
-              <Sparkles className="h-5 w-5" />
-            </div>
-            <div>
-              <p className="text-sm/5 text-white/70">Digital Seva Kendra</p>
-              <h1 className="text-base font-semibold">{BUSINESS.name}</h1>
-            </div>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm text-white/80">
-            <a href="#services" className="hover:text-white">Services</a>
-            <a href="#about" className="hover:text-white">About</a>
-            <a href="#contact" className="hover:text-white">Contact</a>
-          </nav>
-          <div className="flex items-center gap-2">
-            <a href={`tel:${BUSINESS.phone}`} className="hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 border border-white/20 hover:border-white/40 transition shadow-sm">
-              <Phone className="h-4 w-4" />
-              <span className="text-sm">Call Now</span>
-            </a>
-            <a href={waLink} target="_blank" rel="noreferrer" className="flex items-center gap-2 rounded-2xl px-4 py-2 bg-green-500/90 hover:bg-green-500 transition shadow">
-              <MessageCircle className="h-4 w-4" />
-              <span className="text-sm font-medium">WhatsApp</span>
-            </a>
-          </div>
-        </div>
-      </header>
+<header className="sticky top-0 z-50 backdrop-blur supports-[backdrop-filter]:bg-white/5 bg-white/5 border-b border-white/10">
+  <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+    
+    {/* Left Side Logo + Name */}
+    <div className="flex items-center gap-3">
+      {/* Small Photo/Logo */}
+      <div className="h-10 w-10 rounded-full overflow-hidden shadow-lg border border-white/20">
+        <img
+          src="/khatu-shyam.jpg"   // 👈 public folder में image डालनी है
+          alt="Khatu Shyam Ji"
+          className="h-full w-full object-cover"
+        />
+      </div>
+
+      {/* Text */}
+      <div>
+        <p className="text-sm/5 text-white/70">Digital Seva Kendra</p>
+        <h1 className="text-base font-semibold">{BUSINESS.name}</h1>
+      </div>
+    </div>
+
+    {/* Center Navigation */}
+    <nav className="hidden md:flex items-center gap-6 text-sm text-white/80">
+      <a href="#services" className="hover:text-white">Services</a>
+      <a href="#about" className="hover:text-white">About</a>
+      <a href="#contact" className="hover:text-white">Contact</a>
+    </nav>
+
+    {/* Right Side Buttons */}
+    <div className="flex items-center gap-2">
+      <a
+        href={`tel:${BUSINESS.phone}`}
+        className="hidden sm:flex items-center gap-2 rounded-2xl px-4 py-2 border border-white/20 hover:border-white/40 transition shadow-sm"
+      >
+        <Phone className="h-4 w-4" />
+        <span className="text-sm">Call Now</span>
+      </a>
+      <a
+        href={waLink}
+        target="_blank"
+        rel="noreferrer"
+        className="flex items-center gap-2 rounded-2xl px-4 py-2 bg-green-500/90 hover:bg-green-500 transition shadow"
+      >
+        <MessageCircle className="h-4 w-4" />
+        <span className="text-sm font-medium">WhatsApp</span>
+      </a>
+    </div>
+  </div>
+</header>
 
       {/* Hero Section */}
-      <section className="relative overflow-hidden">
-        <div className="absolute inset-0 -z-10 opacity-30 bg-[radial-gradient(50%_50%_at_50%_50%,rgba(99,102,241,0.3),transparent_60%)]" />
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 grid lg:grid-cols-2 gap-10 items-center">
-          <motion.div {...fadeUp}>
-            <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/5 px-3 py-1 text-xs text-white/80">
-              <ShieldCheck className="h-3.5 w-3.5" />
-              Trusted Online Services Centre
-            </div>
-            <h2 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight">
-              Thank you for contacting {BUSINESS.name}
-            </h2>
-            <p className="mt-4 text-base sm:text-lg text-white/80">
-              Please let us know how we can help you. <span className="inline-block">👏🏻</span>
-            </p>
-            <div className="mt-6 flex flex-wrap items-center gap-3 text-white/90">
-              <Heart className="h-5 w-5" />
-              <span>
-                <strong>{BUSINESS.specialist}</strong> in all our Online Services.
-              </span>
-            </div>
-            <div className="mt-8 flex flex-col sm:flex-row gap-3">
-              <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex items-center justify-center rounded-2xl px-5 py-3 bg-green-500 hover:bg-green-600 transition shadow">
-                Get Help on WhatsApp <ArrowRight className="ml-2 h-4 w-4" />
-              </a>
-              <a href="#services" className="inline-flex items-center justify-center rounded-2xl px-5 py-3 border border-white/20 hover:border-white/40 transition">
-                Explore Services
-              </a>
-            </div>
-            <div className="mt-8 grid grid-cols-2 sm:flex gap-4 text-sm text-white/80">
-              {perks.map((p) => (
-                <div key={p.label} className="inline-flex items-center gap-2">
-                  <p.icon className="h-4 w-4" />
-                  <span>{p.label}</span>
-                </div>
-              ))}
-            </div>
-          </motion.div>
+<section className="relative overflow-hidden">
+  {/* Background Image */}
+  <div className="absolute inset-0 -z-0">
+    <img
+      src="/khatu-shyam.jpg" // 👈 public folder में image डालना
+      alt="Khatu Shyam Ji"
+      className="w-full h-full object-cover"
+    />
+    {/* Dark overlay for readability */}
+    <div className="absolute inset-0 bg-black/5" />
+  </div>
+
+  {/* Hero Content */}
+  <div className="relative z-10 mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-16 sm:py-24 grid lg:grid-cols-2 gap-10 items-center text-white">
+    <motion.div {...fadeUp}>
+      <div className="inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs">
+        <ShieldCheck className="h-3.5 w-3.5" />
+        Trusted Online Services Centre
+      </div>
+
+      <h2 className="mt-4 text-3xl sm:text-5xl font-bold tracking-tight">
+        Thank you for contacting {BUSINESS.name}
+      </h2>
+
+      <p className="mt-4 text-base sm:text-lg text-white/80">
+        Please let us know how we can help you. <span className="inline-block">👏🏻</span>
+      </p>
+
+      <div className="mt-6 flex flex-wrap items-center gap-3">
+        <Heart className="h-5 w-5" />
+        <span>
+          <strong>{BUSINESS.specialist}</strong> in all our Online Services.
+        </span>
+      </div>
+
+      <div className="mt-8 flex flex-col sm:flex-row gap-3">
+        <a
+          href={waLink}
+          target="_blank"
+          rel="noreferrer"
+          className="inline-flex items-center justify-center rounded-2xl px-5 py-3 bg-green-500 hover:bg-green-600 transition shadow"
+        >
+          Get Help on WhatsApp <ArrowRight className="ml-2 h-4 w-4" />
+        </a>
+        <button
+          onClick={() => openApply()}
+          className="inline-flex items-center justify-center rounded-2xl px-5 py-3 border border-white/20 hover:border-white/40 transition"
+        >
+          Apply Now
+        </button>
+      </div>
+
+      <div className="mt-8 grid grid-cols-2 sm:flex gap-4 text-sm text-white/80">
+        {perks.map((p) => (
+          <div key={p.label} className="inline-flex items-center gap-2">
+            <p.icon className="h-4 w-4" />
+            <span>{p.label}</span>
+          </div>
+        ))}
+      </div>
+    </motion.div>
 
           {/* Right card */}
           <motion.div {...fadeUp} className="lg:ml-auto">
@@ -182,9 +479,9 @@ export default function SawariyaCSCCentre() {
             <motion.div
               key={title}
               {...fadeUp}
-              className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 hover:bg-white/[0.06] transition shadow-lg"
+              className="rounded-3xl border border-white/10 bg-white/[0.04] p-5 hover:bg-white/[0.06] transition shadow-lg flex flex-col"
             >
-              <div className="flex items-start gap-3">
+              <div className="flex items-start gap-3 flex-1">
                 <div className="h-10 w-10 rounded-2xl bg-white/10 grid place-items-center">
                   <Icon className="h-5 w-5" />
                 </div>
@@ -192,6 +489,22 @@ export default function SawariyaCSCCentre() {
                   <h4 className="font-semibold">{title}</h4>
                   <p className="mt-1 text-sm text-white/70">{desc}</p>
                 </div>
+              </div>
+              <div className="mt-4 flex gap-3">
+                <button
+                  onClick={() => openApply(title)}
+                  className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 bg-indigo-500 hover:bg-indigo-600 transition"
+                >
+                  Apply Now <ArrowRight className="h-4 w-4" />
+                </button>
+                <a
+                  href={waLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex items-center gap-2 rounded-2xl px-4 py-2 border border-white/20 hover:border-white/40"
+                >
+                  Ask on WhatsApp
+                </a>
               </div>
             </motion.div>
           ))}
@@ -203,9 +516,19 @@ export default function SawariyaCSCCentre() {
               <h4 className="text-xl font-semibold">Need something else?</h4>
               <p className="text-white/80">We also handle many other online services. Message us your requirement.</p>
             </div>
-            <a href={waLink} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 bg-green-500 hover:bg-green-600 transition">
-              Chat on WhatsApp <ArrowRight className="h-4 w-4" />
-            </a>
+            <div className="flex gap-3">
+              <a
+                href={waLink}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 bg-green-500 hover:bg-green-600 transition"
+              >
+                Chat on WhatsApp <ArrowRight className="h-4 w-4" />
+              </a>
+              <button onClick={() => openApply()} className="inline-flex items-center gap-2 rounded-2xl px-5 py-3 border border-white/20 hover:border-white/40 transition">
+                Apply Now
+              </button>
+            </div>
           </div>
         </motion.div>
       </section>
@@ -334,15 +657,21 @@ export default function SawariyaCSCCentre() {
             email: BUSINESS.email,
             openingHours: BUSINESS.timings,
             url: typeof window !== "undefined" ? window.location.href : "",
-            sameAs: [
-              `https://wa.me/${BUSINESS.whatsapp}`,
-            ],
+            sameAs: [`https://wa.me/${BUSINESS.whatsapp}`],
             description:
               "CSC centre for Aadhaar, PAN, certificates, passport, police verification, ration card, insurance, electricity connection and more.",
             areaServed: "India",
             slogan: "Fast, verified & hassle-free digital services",
           }),
         }}
+      />
+
+      {/* Apply Modal */}
+      <ApplyModal
+        open={applyOpen}
+        onClose={() => setApplyOpen(false)}
+        selectedService={applyFor}
+        defaultSend={BUSINESS.defaultSendMethod}
       />
     </div>
   );
