@@ -429,41 +429,7 @@ export default function SawariyaCSCCentre() {
       </div>
     </motion.div>
 
-          {/* Right card */}
-          <motion.div {...fadeUp} className="lg:ml-auto">
-            <div className="rounded-3xl border border-white/10 bg-white/[0.04] p-6 sm:p-8 shadow-2xl backdrop-blur">
-              <h3 className="text-xl font-semibold flex items-center gap-2">
-                <BadgeHelp className="h-5 w-5" /> Quick Enquiry
-              </h3>
-              <p className="mt-2 text-white/70 text-sm">
-                Tell us what you need. We’ll call you back within working hours.
-              </p>
-              <form
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const form = e.currentTarget as HTMLFormElement;
-                  const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-                  const need = (form.elements.namedItem("need") as HTMLInputElement).value;
-                  window.open(`https://wa.me/${BUSINESS.whatsapp}?text=${encodeURIComponent(
-                    `Hi ${BUSINESS.name}, I am ${name}. I need help with: ${need}.`
-                  )}`);
-                }}
-                className="mt-6 grid gap-3"
-              >
-                <input name="name" required placeholder="Your Name" className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60" />
-                <input name="phone" required placeholder="Your Phone" className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60" />
-                <input name="need" required placeholder="Service you need (e.g., Aadhar correction)" className="rounded-2xl bg-white/5 border border-white/10 px-4 py-3 outline-none focus:ring-2 focus:ring-indigo-500/60" />
-                <button type="submit" className="rounded-2xl px-5 py-3 bg-indigo-500 hover:bg-indigo-600 transition inline-flex items-center justify-center">
-                  Send Enquiry <ArrowRight className="ml-2 h-4 w-4" />
-                </button>
-              </form>
-              <div className="mt-6 text-sm text-white/70 grid gap-1">
-                <p className="flex items-center gap-2"><Phone className="h-4 w-4" /> {BUSINESS.phone}</p>
-                <p className="flex items-center gap-2"><Mail className="h-4 w-4" /> {BUSINESS.email}</p>
-                <p className="flex items-center gap-2"><Clock className="h-4 w-4" /> {BUSINESS.timings}</p>
-              </div>
-            </div>
-          </motion.div>
+          
         </div>
       </section>
 
